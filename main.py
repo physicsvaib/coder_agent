@@ -1,5 +1,6 @@
 import requests
 import json
+import os
 
 # connect with ollama model
 def chat_with_ollama(message: str) -> str:
@@ -20,21 +21,49 @@ def chat_with_ollama(message: str) -> str:
                 output += data.get("response", "")
     return output
 
+# connect with lmstudio model
+
+def chat_with_lmstudio(message: str) -> str:
+    response = requests.post(
+    "http://localhost:1234/api/v1/chat",
+    headers={
+        "Content-Type": "application/json"
+    },
+    json={
+        "model": "essentialai/rnj-1",
+        "input": f"{message}"
+    }
+    )
+
+    data = response.json()
+    return data["output"][0]["content"]
+
+
+
 # make a new file in this folder and name should be coming from model
 def get_file_name(problem: str):
-    prompt = f"give me the good name of a coding python file for {problem} and respond only with a proper file name, nothing else"
+    prompt = f"give me the good name of a coding python file for {problem} and respond only with a proper file name, nothing else, just the file name with just name and file_name.py example return just: example.py, dont include ``` or anything else just the name of the file and .py extension. example: example.py or example.js or whichever language the user asked for"
 
-    file_name = chat_with_ollama(prompt)
+    file_name = chat_with_lmstudio(prompt)
     print(file_name)
     return file_name
 
 
+def clean_up_extra_parts_of_code(res):
+    res = res.replace("```python", "")
+    res = res.replace("```", "")
+    
+    return res
 # let model input its content in this for python and then lets run it
 
 def create_code(problem: str):
-    prompt = f"Create a full code with best implementation in python on the problem {problem}, this code should be well organized and properly written, just respond with code lines only absolutely nothing else no name of language or an other things just plain code dont include any ``` or anything else"
+    prompt = f"Create a full code with best implementation in python on the problem {problem}, this code should be well organized and properly written, just respond with code lines only absolutely nothing else "
+    
+    res =  chat_with_lmstudio(prompt)
+    res = clean_up_extra_parts_of_code(res)
+    return res
 
-    return chat_with_ollama(prompt)
+
 
 def create_file_add_code(file_name, code):
     with open(f"examples/{file_name}", "w") as f:
